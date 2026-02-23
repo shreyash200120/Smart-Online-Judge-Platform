@@ -1,0 +1,66 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    environment:
+      - PORT=3000
+      - DATABASE_URL=sqlite:///data/oj.db
+      - JWT_SECRET=change-me
+      - REDIS_URL=redis://redis:6379/0
+      - TIME_LIMIT_MS=2000
+      - MEMORY_LIMIT_MB=256
+      - CPP_IMAGE=gcc:13
+      - JAVA_IMAGE=openjdk:21
+      - LEADERBOARD_LIMIT=20
+    ports:
+      - "3001:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    volumes:
+      - dbdata:/data
+    depends_on:
+      - redis
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      - DATABASE_URL=sqlite:///data/oj.db
+      - REDIS_URL=redis://redis:6379/0
+      - TIME_LIMIT_MS=2000
+      - MEMORY_LIMIT_MB=256
+      - CPP_IMAGE=gcc:13
+      - JAVA_IMAGE=openjdk:21
+      - RQ_QUEUE_NAME=judge
+    volumes:
+      - //./pipe/docker.sock:/var/run/docker.sock
+      - dbdata:/data
+    depends_on:
+      - redis
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    environment:
+      - VITE_API_URL=http://server:3000
+    ports:
+      - "4173:4173"
+    depends_on:
+      - server
+  mongo:
+    image: mongo:6
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+volumes:
+  mongodata:
+  dbdata:

@@ -1,0 +1,12 @@
+FROM node:20-alpine
+WORKDIR /app
+COPY worker-node/package.json worker-node/package-lock.json* ./
+RUN npm config set registry https://registry.npmmirror.com \
+	&& npm config set fetch-retry-maxtimeout 600000 \
+	&& npm config set fetch-timeout 600000 \
+	&& npm install --no-audit --no-fund \
+	&& npm install --save-dev @types/node
+COPY worker-node/ ./
+RUN npx tsc && apk add --no-cache docker-cli
+CMD ["node", "dist/index.js"]
+

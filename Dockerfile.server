@@ -1,0 +1,13 @@
+FROM node:20-alpine
+WORKDIR /app
+COPY server/package.json server/package-lock.json* ./
+RUN npm config set registry https://registry.npmmirror.com \
+	&& npm config set fetch-retry-maxtimeout 600000 \
+	&& npm config set fetch-timeout 600000 \
+	&& npm install --no-audit --no-fund \
+	&& npm install --save-dev @types/express @types/jsonwebtoken @types/node
+COPY server/ ./
+RUN npx tsc
+EXPOSE 3000
+CMD ["node", "dist/index.js"]
+
